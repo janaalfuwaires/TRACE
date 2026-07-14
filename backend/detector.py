@@ -1,25 +1,70 @@
 def detect_risk(df):
 
     risk = 0
-    reasons = []
     suspicious_accounts = []
+    explanation = []
+
+    # ---------------- Layering ----------------
 
     sender_counts = df.groupby("sender")["receiver"].nunique()
+    max_receivers = sender_counts.max()
 
-    for sender, count in sender_counts.items():
-        if count >= 2:
-            suspicious_accounts.append(sender)
+    suspicious_accounts = sender_counts[sender_counts >= 2].index.tolist()
 
-    if suspicious_accounts:
-        risk += 40
-        reasons.append("One sender transferred to multiple receivers")
+    if max_receivers >= 10:
+        points = 40
+    elif max_receivers >= 5:
+        points = 25
+    elif max_receivers >= 2:
+        points = 10
+    else:
+        points = 0
 
-    if df["from_bank"].nunique() > 2:
-        risk += 30
-        reasons.append("Transfers across multiple banks")
+    if points:
+        risk += points
+        explanation.append({
+            "factor": "One sender transferred to multiple receivers",
+            "points": points
+        })
 
-    if len(df) > 1 and df["amount"].std() < 200:
-        risk += 20
-        reasons.append("Similar transaction amounts")
+    # ---------------- Banks ----------------
 
-    return min(risk, 99), reasons, suspicious_accounts
+    banks = df["from_bank"].nunique()
+
+    if banks >= 10:
+        points = 30
+    elif banks >= 5:
+        points = 20
+    elif banks >= 2:
+        points = 10
+    else:
+        points = 0
+
+    if points:
+        risk += points
+        explanation.append({
+            "factor": "Transfers across multiple banks",
+            "points": points
+        })
+
+    # ---------------- Similar Amounts ----------------
+
+    std = df["amount"].std()
+
+    if std < 100:
+        points = 30
+    elif std < 300:
+        points = 20
+    elif std < 500:
+        points = 10
+    else:
+        points = 0
+
+    if points:
+        risk += points
+        explanation.append({
+            "factor": "Similar transaction amounts",
+            "points": points
+        })
+
+    return min(risk,99), explanation, suspicious_accounts
