@@ -4,13 +4,16 @@ from fastapi.responses import Response
 import sqlite3
 import pandas as pd
 from pydantic import BaseModel
+from backend.detector import (
+    detect_risk,
+    calculate_network_similarity
+)
 
 from backend.db import (
     init_db,
     load_csv_to_db,
 )
 
-from backend.detector import detect_risk
 from backend.compliance_assistant import generate_compliance_report
 from backend.pdf_report import build_investigation_report_pdf
 
@@ -33,12 +36,16 @@ def load_data():
 def get_transactions():
     return load_data().to_dict(orient="records")
 
-
+network_similarity = calculate_network_similarity(
+    df,
+    suspicious_accounts
+)
 @app.get("/analysis")
 def analysis():
     df = load_data()
 
     score, explanation, suspicious_accounts = detect_risk(df)
+)
     accounts = len(set(df["sender"]).union(set(df["receiver"])))
 
     return {
@@ -48,6 +55,7 @@ def analysis():
         "accounts": accounts,
         "transactions": len(df),
         "suspicious_accounts": suspicious_accounts,
+        "network_similarity": network_similarity,
     }
 
 
@@ -55,8 +63,7 @@ def analysis():
 def compliance_report():
     df = load_data()
 
-    score, explanation, suspicious_accounts = detect_risk(df)
-
+    score, explanation, suspicious_accounts = detect_risk(df)   
     report = generate_compliance_report(
         df,
         score,
@@ -72,9 +79,8 @@ def export_pdf():
     df = load_data()
 
     score, explanation, suspicious_accounts = detect_risk(df)
-
     accounts_count = len(set(df["sender"]).union(set(df["receiver"])))
-
+    network_similarity = calculate_network_similarity(df,suspicious_accounts)
     analysis_data = {
         "risk_score": score,
         "reasons": [x["factor"] for x in explanation],
@@ -82,6 +88,8 @@ def export_pdf():
         "accounts": accounts_count,
         "transactions": len(df),
         "suspicious_accounts": suspicious_accounts,
+        "network_similarity": network_similarity,
+
     }
 
     compliance_data = generate_compliance_report(

@@ -4,6 +4,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import networkx as nx
 
+
 API = "http://127.0.0.1:8000"
 st.set_page_config(
     page_title="TRACE",
@@ -119,7 +120,7 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 
 with tab1:
 
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3, c4, c5 = st.columns(5)
 
     with c1:
         st.markdown(f"""
@@ -156,6 +157,7 @@ with tab1:
 <div class='small'>Today's Activity</div>
 </div>
 """, unsafe_allow_html=True)
+
 
     st.subheader("🔍 Why This Risk Score?")
 
@@ -196,7 +198,7 @@ with tab3:
     G = nx.Graph()
 
     # نأخذ أول 30 عملية حتى يكون الرسم واضح
-    sample = df.head(30)
+    sample = df.head(200)
 
     for _, row in sample.iterrows():
         sender = row["sender"]
@@ -206,7 +208,7 @@ with tab3:
         G.add_node(receiver)
         G.add_edge(sender, receiver)
 
-    pos = nx.spring_layout(G, seed=42)
+    pos = nx.spring_layout(G, seed=200)
 
     edge_x = []
     edge_y = []
@@ -263,6 +265,16 @@ with tab3:
     )
 
     st.plotly_chart(fig, use_container_width=True)
+    st.subheader("Behaviour Similarity")
+
+    network = analysis["network_similarity"]
+
+    if len(network) == 0:
+        st.info("No linked suspicious behaviour detected.")
+    else:
+        st.dataframe(pd.DataFrame(network),
+        use_container_width= True
+        )
 # ---------------- AI Compliance Assistant ---------------- #
 with tab4:
     st.subheader("🛡️ AI Compliance Assistant")
